@@ -6,11 +6,15 @@
 #include "queue_heap.h"
 #include "codec.h"
 #define NUM_THREADS 6
+#define HEAP_SIZE 20
+#define BUFFER_SIZE 1024
 pthread_mutex_t queue_mutex2 = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t queue_cond2 = PTHREAD_COND_INITIALIZER;
 typedef struct args{
     Queue *queue;
     min_heap *minHeap;
+    int is_encrypt;
+    int key;
 } args;
 void* print_encrypted2(void* arg){
     args * args1 = (args *) arg;
@@ -22,7 +26,7 @@ void* print_encrypted2(void* arg){
         pthread_mutex_lock(q->mutex_lock);
         q->last_print++;
         pthread_mutex_unlock(q->mutex_lock);
-        fprintf(stdout, "c:%d task:%d encrypted:%s\n", c,task->index,task->str);
+        fprintf(stdout, "%s", task->str);
         fflush(stdout);
         free(task->str);
         free(task);
@@ -40,12 +44,13 @@ void* process_tasks(void* arg){
     args *args1 = (args*)arg;
     Queue* q = args1->queue;
     min_heap *minHeap = args1->minHeap;
-
+    int is_e = args1->is_encrypt;
+    void (*process_func)(char*, int) = (is_e == 1) ? &encrypt : &decrypt;
     while(1){
         Task* task = pop(q);
         if (task != NULL){
-            encrypt(task->str,1);
-            task->encrypted = 1;
+            process_func(task->str, args1->key);
+//            task->encrypted = 1;
             min_heap_insert(minHeap,task);
         }
         else if (!q->done){
@@ -64,18 +69,18 @@ void* insert_input(void* arg){
     Queue* q = (Queue*) arg;
     char c;
     int counter = 0;
-    int dest_size = 1024;
+    int dest_size = BUFFER_SIZE;
     char data[dest_size];
     memset(data, 0, dest_size);
     while ((c = getchar()) != EOF){
         data[counter] = c;
         counter++;
 
-        if (counter == 1024){
-            char* str = (char*) malloc(sizeof(char) * 1025);
-            memset(str, 0, sizeof (char)*1025);
-            memcpy(str, data, 1024);
-            str[1024] = '\0';
+        if (counter == BUFFER_SIZE){
+            char* str = (char*) malloc(sizeof(char) * (BUFFER_SIZE+1));
+            memset(str, 0, sizeof (char)*(BUFFER_SIZE+1));
+            memcpy(str, data, BUFFER_SIZE);
+            str[BUFFER_SIZE] = '\0';
             add(q,str);
             pthread_mutex_lock(&queue_mutex2);
             pthread_cond_signal(&queue_cond2);
@@ -101,14 +106,31 @@ void* insert_input(void* arg){
     setDone(q);
     return NULL;
 }
-int main(){
+int main(int argc, char *argv[]){
+    if (argc != 3){
+        printf("usage: key flag < file \n");
+        printf("!! data more than 1024 char will be ignored !!\n");
+        return 0;
+    }
 
+    int is_encrypted,key = atoi(argv[1]);
+//    printf("key is %i \n",key);
+    char *flag = argv[2];
+    if (!strcmp(flag,"-e"))
+        is_encrypted = 1;
+    else if (!strcmp(flag,"-d"))
+        is_encrypted = 0;
+    else {
+        printf("valid flag is -e or -d!\n");
+        return 0;;
+    }
+//    printf("flag is %s \n",flag);
     Queue* q = initQ();
-    min_heap *minHeap = min_heap_init(20);
-    args args1 = {q,minHeap};
+    min_heap *minHeap = min_heap_init(HEAP_SIZE);
+    args args1 = {q,minHeap,is_encrypted,key};
     pthread_t threads[NUM_THREADS];
-    struct timeval start_time, end_time;
-    gettimeofday(&start_time, NULL); // Record start time
+//    struct timeval start_time, end_time;
+//    gettimeofday(&start_time, NULL); // Record start time
     pthread_create(&threads[0], NULL, insert_input, (void*) q);
     for (int i = 1; i < NUM_THREADS-1; ++i) {
         pthread_create(&threads[i], NULL, process_tasks, (void*) &args1);
@@ -117,11 +139,11 @@ int main(){
     for (int i = 0; i < NUM_THREADS; ++i) {
         pthread_join(threads[i], NULL);
     }
-    gettimeofday(&end_time, NULL); // Record end time
-    double elapsed_time = (end_time.tv_sec - start_time.tv_sec) + (end_time.tv_usec - start_time.tv_usec) / 1000000.0; // Calculate elapsed time in seconds
+//    gettimeofday(&end_time, NULL); // Record end time
+//    double elapsed_time = (end_time.tv_sec - start_time.tv_sec) + (end_time.tv_usec - start_time.tv_usec) / 1000000.0; // Calculate elapsed time in seconds
 
-    printf("Elapsed time: %f seconds\n", elapsed_time);
-    printf("Q size:%d\n",q->count);
+//    printf("Elapsed time: %f seconds\n", elapsed_time);
+//    printf("Q size:%d\n",q->count);
     free(q->mutex_lock);
     free(q->first_cond);
     free(q);

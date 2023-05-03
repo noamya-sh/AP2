@@ -5,7 +5,7 @@ CC=gcc
 CFLAGS=-Wall -Wextra -pthread
 LIBS=-L. -lCodec
 
-all: tp
+all: tp task stdinExample
 
 tp: ThreadPool.c queue.c heap.c queue_heap.h
 	$(CC) $(CFLAGS) -o tp ThreadPool.c heap.c queue.c $(LIBS)
@@ -18,5 +18,5 @@ stdinExample:	stdin_main.c
 
 .PHONY: clean
 clean:
-	-rm encoder tester t main
+	-rm encoder tester tp
 #libCodec.so 2>/dev/null

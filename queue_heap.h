@@ -3,7 +3,6 @@
 #include <pthread.h>
 typedef struct Task{
     char *str;
-    int encrypted;
     int index;
     struct Task* next;
 } Task;

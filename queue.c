@@ -20,7 +20,7 @@ Queue *initQ(){
 }
 Task *initT(){
     Task *task = (Task *) malloc(sizeof (Task));
-    task->index = task->encrypted = 0;
+    task->index = 0;
     task->str = "";
     task->next=NULL;
     return task;
