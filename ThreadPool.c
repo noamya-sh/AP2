@@ -50,7 +50,6 @@ void* process_tasks(void* arg){
         Task* task = pop(q);
         if (task != NULL){
             process_func(task->str, args1->key);
-//            task->encrypted = 1;
             min_heap_insert(minHeap,task);
         }
         else if (!q->done){
