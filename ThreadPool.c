@@ -5,7 +5,6 @@
 #include <sys/time.h> // for gettimeofday()
 #include "queue_heap.h"
 #include "codec.h"
-#define NUM_THREADS 6
 #define HEAP_SIZE 20
 #define BUFFER_SIZE 1024
 pthread_mutex_t queue_mutex2 = PTHREAD_MUTEX_INITIALIZER;
@@ -20,12 +19,12 @@ void* print_encrypted2(void* arg){
     args * args1 = (args *) arg;
     Queue *q = args1->queue;
     min_heap *minHeap = args1->minHeap;
-    int c = 0;
-    while (!q->done || (q->done && c < q->count)){
+    while (!q->done || (q->done && q->last_print < q->count)){
         Task* task = min_heap_extract_min(minHeap,q->last_print);
         pthread_mutex_lock(q->mutex_lock);
         q->last_print++;
         pthread_mutex_unlock(q->mutex_lock);
+
         fprintf(stdout, "%s", task->str);
         fflush(stdout);
         free(task->str);
@@ -85,6 +84,7 @@ void* insert_input(void* arg){
             pthread_cond_signal(&queue_cond2);
             pthread_mutex_unlock(&queue_mutex2);
             counter = 0;
+//            sleep(1);
         }
     }
 
@@ -123,7 +123,7 @@ int main(int argc, char *argv[]){
         printf("valid flag is -e or -d!\n");
         return 0;;
     }
-//    printf("flag is %s \n",flag);
+    long NUM_THREADS = 12;
     Queue* q = initQ();
     min_heap *minHeap = min_heap_init(HEAP_SIZE);
     args args1 = {q,minHeap,is_encrypted,key};
