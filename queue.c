@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "queue_heap.h"
-#define Q_ARR_SIZE 50
+
 Queue *initQ(){
     Queue *q = (Queue*) malloc(sizeof (Queue));
     q->head = q->tail = NULL;
