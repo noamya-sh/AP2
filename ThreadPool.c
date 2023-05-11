@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <pthread.h>
+#include <ctype.h>
 #include <sys/time.h> // for gettimeofday()
 #include "queue_heap.h"
 #include "codec.h"
@@ -15,6 +16,16 @@ typedef struct args{
     int is_encrypt;
     int key;
 } args;
+
+int is_all_digits(const char* str) {
+    for (int i = 0; str[i] != '\0'; i++) {
+        if (!isdigit(str[i])) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
 void* print_encrypted(void* arg){
     // print all encrypted chunks by insert order
     args * args1 = (args *) arg;
@@ -112,13 +123,14 @@ void* insert_input(void* arg){
 }
 int main(int argc, char *argv[]){
     if (argc != 3){
-        printf("usage: key flag < file \n");
-        printf("!! data more than 1024 char will be ignored !!\n");
+        printf("usage: key flag \n");
         return 0;
     }
-
+    if (!is_all_digits(argv[1])){
+        printf("key should be int\n");
+        return 0;
+    }
     int is_encrypted,key = atoi(argv[1]);
-//    printf("key is %i \n",key);
     char *flag = argv[2];
     if (!strcmp(flag,"-e"))
         is_encrypted = 1;
