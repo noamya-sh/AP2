@@ -10,3 +10,6 @@ for example:
 ./coder 2 -d < a.txt > output
 or:
 echo "Hello" | ./coder 5 -e
+
+If the terminal fails to recognize the dynamic library libCodec.so, Run the following command:
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/
