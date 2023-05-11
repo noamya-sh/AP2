@@ -2,10 +2,9 @@
 #include <pthread.h>
 #include "queue_heap.h"
 
-
 min_heap * min_heap_init(int capacity) {
     min_heap *heap = (min_heap*)malloc(sizeof(min_heap));
-    heap->data = (Task **)malloc(sizeof(int) * capacity);
+    heap->data = (Task **)malloc(sizeof(Task*) * capacity);
     heap->size = 0;
     heap->capacity = capacity;
     heap->finished = 0;
@@ -15,7 +14,7 @@ min_heap * min_heap_init(int capacity) {
     return heap;
 }
 
-void min_heap_insert(struct min_heap *heap, Task* value) {
+void min_heap_insert(min_heap *heap, Task* value) {
     pthread_mutex_lock(&heap->mutex);
     // Check if the heap is full.
     while (heap->size == heap->capacity && !heap->finished) {
@@ -82,7 +81,7 @@ Task* min_heap_extract_min(min_heap *heap,int index) {
     return min_value;
 }
 
-void min_heap_destroy(struct min_heap *heap) {
+void min_heap_destroy(min_heap *heap) {
     pthread_mutex_lock(&heap->mutex);
     free(heap->data);
     pthread_mutex_unlock(&heap->mutex);

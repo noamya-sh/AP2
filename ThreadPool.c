@@ -5,7 +5,7 @@
 #include <sys/time.h> // for gettimeofday()
 #include "queue_heap.h"
 #include "codec.h"
-#define HEAP_SIZE 30
+#define HEAP_SIZE 20
 #define BUFFER_SIZE 1024
 pthread_mutex_t queue_mutex2 = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t queue_cond2 = PTHREAD_COND_INITIALIZER;
@@ -15,20 +15,23 @@ typedef struct args{
     int is_encrypt;
     int key;
 } args;
-void* print_encrypted2(void* arg){
+void* print_encrypted(void* arg){
+    // print all encrypted chunks by insert order
     args * args1 = (args *) arg;
     Queue *q = args1->queue;
     min_heap *minHeap = args1->minHeap;
     while (!q->done || (q->done && q->last_print < q->count)){
         Task* task = min_heap_extract_min(minHeap,q->last_print);
-        pthread_mutex_lock(q->mutex_lock);
-        q->last_print++;
-        pthread_mutex_unlock(q->mutex_lock);
+        if (task != NULL){
+            pthread_mutex_lock(q->mutex_lock);
+            q->last_print++;
+            pthread_mutex_unlock(q->mutex_lock);
 
-        fprintf(stdout, "%s", task->str);
-        fflush(stdout);
-        free(task->str);
-        free(task);
+            fprintf(stdout, "%s", task->str);
+            fflush(stdout);
+            free(task->str);
+            free(task);
+        }
         if (q->done && q->last_print == q->count){
             pthread_mutex_lock(&minHeap->mutex);
             minHeap->finished = 1;
@@ -40,6 +43,7 @@ void* print_encrypted2(void* arg){
     return NULL;
 }
 void* process_tasks(void* arg){
+    //take chunk from queue and encrypt
     args *args1 = (args*)arg;
     Queue* q = args1->queue;
     min_heap *minHeap = args1->minHeap;
@@ -47,13 +51,14 @@ void* process_tasks(void* arg){
     void (*process_func)(char*, int) = (is_e == 1) ? &encrypt : &decrypt;
     while(1){
         Task* task = pop(q);
+
         if (task != NULL){
             process_func(task->str, args1->key);
             min_heap_insert(minHeap,task);
         }
         else if (!q->done){
             pthread_mutex_lock(&queue_mutex2);
-            if (!q->done && q->head == NULL) {
+            if (!q->done) {
                 pthread_cond_wait(&queue_cond2, &queue_mutex2);
             }
             pthread_mutex_unlock(&queue_mutex2);
@@ -64,6 +69,7 @@ void* process_tasks(void* arg){
     return NULL;
 }
 void* insert_input(void* arg){
+    // take each time chunk of 1024 chars and push to queue
     Queue* q = (Queue*) arg;
     char c;
     int counter = 0;
@@ -84,7 +90,6 @@ void* insert_input(void* arg){
             pthread_cond_signal(&queue_cond2);
             pthread_mutex_unlock(&queue_mutex2);
             counter = 0;
-//            sleep(1);
         }
     }
 
@@ -99,7 +104,7 @@ void* insert_input(void* arg){
         str[counter] = '\0';
         add(q,str);
         pthread_mutex_lock(&queue_mutex2);
-        pthread_cond_signal(&queue_cond2);
+        pthread_cond_broadcast(&queue_cond2);
         pthread_mutex_unlock(&queue_mutex2);
     }
     setDone(q);
@@ -128,13 +133,14 @@ int main(int argc, char *argv[]){
     min_heap *minHeap = min_heap_init(HEAP_SIZE);
     args args1 = {q,minHeap,is_encrypted,key};
     pthread_t threads[NUM_THREADS];
+
 //    struct timeval start_time, end_time;
 //    gettimeofday(&start_time, NULL); // Record start time
     pthread_create(&threads[0], NULL, insert_input, (void*) q);
     for (int i = 1; i < NUM_THREADS-1; ++i) {
         pthread_create(&threads[i], NULL, process_tasks, (void*) &args1);
     }
-    pthread_create(&threads[NUM_THREADS-1], NULL, print_encrypted2, (void*) &args1);
+    pthread_create(&threads[NUM_THREADS-1], NULL, print_encrypted, (void*) &args1);
     for (int i = 0; i < NUM_THREADS; ++i) {
         pthread_join(threads[i], NULL);
     }
@@ -142,7 +148,6 @@ int main(int argc, char *argv[]){
 //    double elapsed_time = (end_time.tv_sec - start_time.tv_sec) + (end_time.tv_usec - start_time.tv_usec) / 1000000.0; // Calculate elapsed time in seconds
 
 //    printf("Elapsed time: %f seconds\n", elapsed_time);
-//    printf("Q size:%d\n",q->count);
     free(q->mutex_lock);
     free(q->first_cond);
     free(q);
