@@ -5,7 +5,7 @@
 #include <sys/time.h> // for gettimeofday()
 #include "queue_heap.h"
 #include "codec.h"
-#define HEAP_SIZE 20
+#define HEAP_SIZE 30
 #define BUFFER_SIZE 1024
 pthread_mutex_t queue_mutex2 = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t queue_cond2 = PTHREAD_COND_INITIALIZER;
