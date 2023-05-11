@@ -7,7 +7,7 @@ and refer to it a file containing text or perform pipe.
 (key is int. flag -d is decrypting and -e is encrypting)
 
 for example:
-./coder 2 -d < a.txt > output
+./coder 2 -d < examole_input.txt > output
 or:
 echo "Hello" | ./coder 5 -e
 
