@@ -6,7 +6,8 @@
 #include <sys/time.h> // for gettimeofday()
 #include "queue_heap.h"
 #include "codec.h"
-#define HEAP_SIZE 20
+#define HEAP_SIZE 50
+#define NUM_THREADS 50
 #define BUFFER_SIZE 1024
 pthread_mutex_t queue_mutex2 = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t queue_cond2 = PTHREAD_COND_INITIALIZER;
@@ -140,7 +141,6 @@ int main(int argc, char *argv[]){
         printf("valid flag is -e or -d!\n");
         return 0;;
     }
-    long NUM_THREADS = 12;
     Queue* q = initQ();
     min_heap *minHeap = min_heap_init(HEAP_SIZE);
     args args1 = {q,minHeap,is_encrypted,key};
